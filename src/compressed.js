@@ -228,8 +228,8 @@ async function handleChampionSelect() {
         .map((t) => encodeURIComponent(`${t.game_name}#${t.game_tag}`))
         .join(","),
       b = `https://www.op.gg/multisearch/${i}?summoners=${f}`,
-      w = `https://porofessor.gg/pregame/${i}/${y}`,
-      k = `<p style ="font-size: 12px" display: "inline"><a href="${b}" target="_blank" style="color: gold;">View on OP.GG</a><br><a href="${w}" target="_blank" style="color: gold;">View on Porofessor.gg</a></p>`;
+      w = `https://www.deeplol.gg/multi/${i}/${y}`,
+      k = `<p style ="font-size: 12px" display: "inline"><a href="${b}" target="_blank" style="color: gold;">View on OP.GG</a><br><a href="${w}" target="_blank" style="color: gold;">View on deeplol.gg</a></p>`;
     t.popup && populateContent(d, k, g);
   } catch ($) {
     console.error("Error in Champion Select phase:", $);
