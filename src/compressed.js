@@ -1,321 +1,336 @@
-async function observeQueue(t) {
+async function observeQueue(callback) {
   try {
-    let e = initializeWebSocket();
-    (e.onopen = () => subscribeToGameFlow(e)),
-      (e.onmessage = t),
-      (e.onerror = (t) => {
-        console.error("WebSocket Error:", t);
-      });
-  } catch (a) {
-    console.error("Error observing game queue:", a);
+    const socket = initializeWebSocket();
+    socket.onopen = () => subscribeToGameFlow(socket);
+    socket.onmessage = callback;
+    socket.onerror = (error) => console.error("WebSocket Error:", error);
+  } catch (error) {
+    console.error("Error observing game queue:", error);
   }
 }
+
 function initializeWebSocket() {
-  let t = getWebSocketURI();
-  return new WebSocket(t, "wamp");
+  const uri = getWebSocketURI();
+  return new WebSocket(uri, "wamp");
 }
+
 function getWebSocketURI() {
-  let t = document.querySelector('link[rel="riot:plugins:websocket"]');
-  if (!t) throw Error("WebSocket link element not found");
-  return t.href;
+  const linkElement = document.querySelector('link[rel="riot:plugins:websocket"]');
+  if (!linkElement) throw new Error("WebSocket link element not found");
+  return linkElement.href;
 }
-function subscribeToGameFlow(t) {
-  let e = "/lol-gameflow/v1/gameflow-phase".replaceAll("/", "_");
-  t.send(JSON.stringify([5, "OnJsonApiEvent" + e]));
+
+function subscribeToGameFlow(socket) {
+  const event = "/lol-gameflow/v1/gameflow-phase".replaceAll("/", "_");
+  socket.send(JSON.stringify([5, `OnJsonApiEvent${event}`]));
 }
-const delay = (t) => new Promise((e) => setTimeout(e, t));
-function romanToNumber(t) {
-  let e = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1e3 },
-    a = 0,
-    n = 0;
-  for (let i = t.length - 1; i >= 0; i--) {
-    let r = e[t[i]];
-    (a += r < n ? -r : r), (n = r);
+
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function romanToNumber(roman) {
+  const romanNumerals = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+  return roman.split('').reduceRight((total, char, index, arr) => {
+    const value = romanNumerals[char];
+    return value < romanNumerals[arr[index + 1]] ? total - value : total + value;
+  }, 0);
+}
+
+function sumArrayElements(arr) {
+  if (!Array.isArray(arr)) {
+    console.error("Expected an array, received:", arr);
+    return 0;
   }
-  return a;
+  return arr.reduce((sum, value) => sum + value, 0);
 }
-function sumArrayElements(t) {
-  return Array.isArray(t)
-    ? t.reduce((t, e) => t + e, 0)
-    : (console.error("Expected an array, received:", t), 0);
-}
+
 function createPopup() {
-  let t = `<div id="infoSidebar" style="z-index: 9999; position: fixed; inset-block-start: 0; inset-inline-start: 0; inline-size: 282px; block-size: 100%; background-color: #1e2328; padding: 20px; border-inline-end: 1px solid #C8A660; box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2); color: white; display: none; overflow-y: auto; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"><div id="sidebarContent">Loading... <br> This may take a few seconds.</div></div><button id="toggleButton" style="position: fixed; inset-block-start: 625px; inset-inline-start: 325px; color: #cdbe91; font-size: var(--font-size, 14px); font-family: var(--font-family, var(--font-display)); font-weight: bold; letter-spacing: 1px; align-items: center;box-sizing: border-box;justify-content: center;white-space: nowrap;padding: 5px 1.3em;block-size: var(--flat-button-height);inline-size: var(--flat-button-width);min-block-size: var(--flat-button-min-height);cursor: pointer;-webkit-user-select: none;box-shadow: 0 0 1px 1px #010a13, inset 0 0 1px 1px #010a13;background: #1e2328;background-image: initial;background-position-x: initial;background-position-y: initial;background-size: initial;background-repeat-x: initial;background-repeat-y: initial; background-attachment: initial;background-origin: initial;background-clip: initial;background-color: rgb(30, 35, 40);border: 1px solid #C8A660;">SNR</button>`;
-  document.body.insertAdjacentHTML("beforeend", t),
-    document
-      .getElementById("toggleButton")
-      .addEventListener("click", toggleSidebar);
+  const popupHTML = `
+    <div id="infoSidebar" style="z-index: 9999; position: fixed; top: 0; left: 0; width: 282px; height: 100%; background-color: #1e2328; padding: 20px; border-right: 1px solid #C8A660; box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2); color: white; display: none; overflow-y: auto; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+      <div id="sidebarContent">Loading... <br> This may take a few seconds.</div>
+    </div>
+    <button id="toggleButton" style="position: fixed; top: 625px; left: 325px; color: #cdbe91; font-size: 14px; font-weight: bold; letter-spacing: 1px; padding: 5px 1.3em; cursor: pointer; box-shadow: 0 0 1px 1px #010a13, inset 0 0 1px 1px #010a13; background: #1e2328; border: 1px solid #C8A660;">
+      SNR
+    </button>
+  `;
+  document.body.insertAdjacentHTML("beforeend", popupHTML);
+  document.getElementById("toggleButton").addEventListener("click", toggleSidebar);
 }
-function populateContent(t, e, a) {
-  let n = `<p style="font-size: 12px">${t.join("<br>")}</p>`;
-  document.getElementById("sidebarContent").innerHTML =
-    n +
-    e +
-    '<p style="font-size: 10px">This is a beta overlay, if you would like to configure certain options, this is now possible. Please visit <a href="https://github.com/dakota1337x/Summoner-Name-Reveal-V2" target="_blank" style="color: gold;">here</a> to find out more information.</p>';
+
+function populateContent(lines, additionalContent, document) {
+  const contentHTML = `
+    <p style="font-size: 12px">${lines.join("<br>")}</p>
+    ${additionalContent}
+    <p style="font-size: 10px">
+      This is a beta overlay. For configuration options, visit 
+      <a href="https://github.com/dakota1337x/Summoner-Name-Reveal-V2" target="_blank" style="color: gold;">here</a> for more information.
+    </p>
+  `;
+  document.getElementById("sidebarContent").innerHTML = contentHTML;
 }
+
 function removeSidebar() {
-  let t = document.getElementById("infoSidebar"),
-    e = document.getElementById("toggleButton");
-  t && t.remove(), e && e.remove();
+  const sidebar = document.getElementById("infoSidebar");
+  const toggleButton = document.getElementById("toggleButton");
+  sidebar?.remove();
+  toggleButton?.remove();
 }
-async function queryMatch(t, e = 0, a = 19) {
+
+async function queryMatch(puuid, startIndex = 0, endIndex = 19) {
   try {
-    let n = `/lol-match-history/v1/products/lol/${t}/matches?begIndex=${e}&endIndex=${a}`,
-      i = await create("GET", n),
-      r = i.games.games;
-    return console.log(r), !!Array.isArray(r) && extractMatchData(r);
-  } catch (o) {
-    return console.error("Error querying match for puuid:", t, o), !1;
+    const endpoint = `/lol-match-history/v1/products/lol/${puuid}/matches?begIndex=${startIndex}&endIndex=${endIndex}`;
+    const response = await create("GET", endpoint);
+    return Array.isArray(response.games.games) ? extractMatchData(response.games.games) : null;
+  } catch (error) {
+    console.error("Error querying match for puuid:", puuid, error);
+    return null;
   }
 }
-function extractMatchData(t) {
-  let e = {
-    gameMode: [],
-    championId: [],
-    killList: [],
-    deathsList: [],
-    assistsList: [],
-    Minions: [],
-    gold: [],
-    winList: [],
-    causedEarlySurrenderList: [],
-    laneList: [],
-    spell1Id: [],
-    spell2Id: [],
-    items: [],
-    types: [],
+
+function extractMatchData(matches) {
+  const data = {
+    gameMode: [], championId: [], killList: [], deathsList: [], assistsList: [],
+    Minions: [], gold: [], winList: [], causedEarlySurrenderList: [],
+    laneList: [], spell1Id: [], spell2Id: [], items: [], types: []
   };
-  return (
-    t.forEach((t) => {
-      let a = t.participants[0];
-      e.gameMode.push(t.queueId),
-        e.championId.push(a.championId),
-        e.killList.push(a.stats.kills),
-        e.deathsList.push(a.stats.deaths),
-        e.assistsList.push(a.stats.assists),
-        e.Minions.push(
-          a.stats.neutralMinionsKilled + a.stats.totalMinionsKilled
-        ),
-        e.gold.push(a.stats.goldEarned),
-        e.winList.push(a.stats.win ? "true" : "false"),
-        e.causedEarlySurrenderList.push(a.stats.causedEarlySurrender),
-        e.laneList.push(a.timeline.lane),
-        e.spell1Id.push(a.spell1Id),
-        e.spell2Id.push(a.spell2Id);
-      let n = [];
-      for (let i = 0; i < 7; i++) {
-        let r = "item" + i,
-          o = a.stats[r];
-        n.push(o);
-      }
-      e.items.push(n), e.types.push(t.gameType);
-    }),
-    e
-  );
+  matches.forEach(match => {
+    const participant = match.participants[0];
+    data.gameMode.push(match.queueId);
+    data.championId.push(participant.championId);
+    data.killList.push(participant.stats.kills);
+    data.deathsList.push(participant.stats.deaths);
+    data.assistsList.push(participant.stats.assists);
+    data.Minions.push(participant.stats.neutralMinionsKilled + participant.stats.totalMinionsKilled);
+    data.gold.push(participant.stats.goldEarned);
+    data.winList.push(participant.stats.win ? "true" : "false");
+    data.causedEarlySurrenderList.push(participant.stats.causedEarlySurrender);
+    data.laneList.push(participant.timeline.lane);
+    data.spell1Id.push(participant.spell1Id);
+    data.spell2Id.push(participant.spell2Id);
+    data.items.push(Array.from({ length: 7 }, (_, i) => participant.stats[`item${i}`]));
+    data.types.push(match.gameType);
+  });
+  return data;
 }
-async function getMatchDataForPuuids(t) {
+
+async function getMatchDataForPuuids(puuids) {
   try {
-    let e = t.map((t) => queryMatch(t, 0, 21));
-    return await Promise.all(e);
-  } catch (a) {
-    return (
-      console.error("Error fetching match data for multiple PUUIDs:", a), []
-    );
+    const queries = puuids.map(puuid => queryMatch(puuid, 0, 21));
+    return await Promise.all(queries);
+  } catch (error) {
+    console.error("Error fetching match data for multiple PUUIDs:", error);
+    return [];
   }
 }
-async function fetchRankedStats(t) {
-  let e = `/lol-ranked/v1/ranked-stats/${t}`;
+
+async function fetchRankedStats(puuid) {
   try {
-    return await create("GET", e);
-  } catch (a) {
-    return console.error("Error fetching ranked stats for puuid:", t, a), null;
+    const endpoint = `/lol-ranked/v1/ranked-stats/${puuid}`;
+    return await create("GET", endpoint);
+  } catch (error) {
+    console.error("Error fetching ranked stats for puuid:", puuid, error);
+    return null;
   }
 }
-async function getRankedStatsForPuuids(t) {
+
+async function getRankedStatsForPuuids(puuids) {
   try {
-    let e = await Promise.all(t.map(fetchRankedStats));
-    return e.map(extractSimplifiedStats);
-  } catch (a) {
-    return (
-      console.error("Error fetching ranked stats for multiple PUUIDs:", a), []
-    );
+    const stats = await Promise.all(puuids.map(fetchRankedStats));
+    return stats.map(extractSimplifiedStats);
+  } catch (error) {
+    console.error("Error fetching ranked stats for multiple PUUIDs:", error);
+    return [];
   }
 }
-function extractSimplifiedStats(t) {
-  if (!t || !t.queueMap) return "Unranked";
-  let e = t.queueMap.RANKED_SOLO_5x5,
-    a = t.queueMap.RANKED_FLEX_SR;
-  return determineRank(e, a);
+
+function extractSimplifiedStats(stats) {
+  if (!stats || !stats.queueMap) return "Unranked";
+  const solo = stats.queueMap.RANKED_SOLO_5x5;
+  const flex = stats.queueMap.RANKED_FLEX_SR;
+  return determineRank(solo, flex);
 }
-function determineRank(t, e) {
-  return isValidRank(t)
-    ? formatRank(t)
-    : isValidRank(e)
-    ? formatRank(e)
-    : "Unranked";
+
+function determineRank(solo, flex) {
+  return isValidRank(solo) ? formatRank(solo) :
+         isValidRank(flex) ? formatRank(flex) : "Unranked";
 }
-function isValidRank(t) {
-  return t && t.tier && t.division && "NA" !== t.tier && !t.isProvisional;
+
+function isValidRank(rank) {
+  return rank && rank.tier && rank.division && rank.tier !== "NA" && !rank.isProvisional;
 }
-function formatRank(t) {
-  return [
-    "IRON",
-    "BRONZE",
-    "SILVER",
-    "GOLD",
-    "PLATINUM",
-    "EMERALD",
-    "DIAMOND",
-  ].includes(t.tier)
-    ? `${t.tier[0]}${romanToNumber(t.division)}`
-    : t.tier;
+
+function formatRank(rank) {
+  const tiers = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND"];
+  return tiers.includes(rank.tier) ? `${rank.tier[0]}${romanToNumber(rank.division)}` : rank.tier;
 }
+
 async function getChampionSelectChatInfo() {
   try {
-    let t = await create("GET", "/lol-chat/v1/conversations");
-    return t ? t.find((t) => "championSelect" === t.type) : null;
-  } catch (e) {
-    return console.error("Error fetching champion select chat info:", e), null;
+    const conversations = await create("GET", "/lol-chat/v1/conversations");
+    return conversations ? conversations.find(conv => conv.type === "championSelect") : null;
+  } catch (error) {
+    console.error("Error fetching champion select chat info:", error);
+    return null;
   }
 }
-async function postMessageToChat(t, e) {
+
+async function postMessageToChat(conversationId, message) {
   try {
-    await create("POST", `/lol-chat/v1/conversations/${t}/messages`, {
-      body: e,
-      type: "celebration",
-    });
-  } catch (a) {
-    console.error(`Error posting message to chat ${t}:`, a);
+    await create("POST", `/lol-chat/v1/conversations/${conversationId}/messages`, { body: message, type: "celebration" });
+  } catch (error) {
+    console.error(`Error posting message to chat ${conversationId}:`, error);
   }
 }
-async function getMessageFromChat(t) {
+
+async function getMessageFromChat(conversationId) {
   try {
-    await create("GET", `/lol-chat/v1/conversations/${t}/messages`);
-  } catch (e) {
-    console.error(`Error getting messages from chat ${t}:`, e);
+    await create("GET", `/lol-chat/v1/conversations/${conversationId}/messages`);
+  } catch (error) {
+    console.error(`Error getting messages from chat ${conversationId}:`, error);
   }
 }
+
 async function handleChampionSelect() {
   try {
-    let t;
-    try {
-      let e = getScriptPath()?.match(/\/([^/]+)\/index\.js$/)?.[1];
-      console.log(e);
-      let a = await fetch(`https://plugins/${decodeURI(e)}/config.json`);
-      (t = await a.json()), console.log(t);
-    } catch {
-      t = { textchat: !0, popup: !0 };
+    const config = await getConfig();
+    if (config.popup) createPopup();
+    await delay(15000);
+    const regionLocale = await create("GET", "/riotclient/region-locale");
+    const webRegion = regionLocale.webRegion;
+    const chatInfo = await getChampionSelectChatInfo();
+    if (!chatInfo) return;
+
+    const participants = (await create("GET", "//riotclient/chat/v5/participants")).participants;
+    const championSelectParticipants = participants.filter(participant => participant.cid.includes("champ-select"));
+    const puuids = championSelectParticipants.map(participant => participant.puuid);
+    const matchData = await getMatchDataForPuuids(puuids);
+    const rankedStats = await getRankedStatsForPuuids(puuids);
+
+    const playerData = championSelectParticipants.map((participant, index) => formatPlayerData(participant, rankedStats[index], matchData[index]));
+    const playerData2 = championSelectParticipants.map((participant, index) => formatPlayerData2(participant, rankedStats[index], matchData[index]));
+
+    const frame = document.getElementById("embedded-messages-frame");
+    const document = frame.contentDocument || frame.contentWindow.document;
+
+    if (config.textchat) {
+      for (const message of playerData) {
+        await postMessageToChat(chatInfo.id, message);
+      }
     }
-    t.popup && createPopup(), await delay(0e10);
-    let n = await create("GET", "/riotclient/region-locale"),
-      i = n.webRegion,
-      r = await getChampionSelectChatInfo();
-    if (!r) return;
-    let o = await create("GET", "//riotclient/chat/v5/participants"),
-      s = o.participants.filter((t) => t.cid.includes("champ-select")),
-      l = s.map((t) => t.puuid),
-      c = await getMatchDataForPuuids(l),
-      u = await getRankedStatsForPuuids(l),
-      p = s.map((t, e) => formatPlayerData(t, u[e], c[e])),
-      d = s.map((t, e) => formatPlayerData2(t, u[e], c[e])),
-      m = document.getElementById("embedded-messages-frame"),
-      g = m.contentDocument || m.contentWindow.document;
-    if (t.textchat) for (let h of p) await postMessageToChat(r.id, h);
-    let f = s
-        .map((t) => encodeURIComponent(`${t.game_name}#${t.game_tag}`))
-        .join("%2C"),
-      y = s
-        .map((t) => encodeURIComponent(`${t.game_name}#${t.game_tag}`))
-        .join(","),
-      b = `https://www.op.gg/multisearch/${i}?summoners=${f}`,
-      w = `https://www.deeplol.gg/multi/${i}/${y}`,
-      k = `<p style ="font-size: 12px" display: "inline"><a href="${b}" target="_blank" style="color: gold;">View on OP.GG</a><br><a href="${w}" target="_blank" style="color: gold;">View on deeplol.gg</a></p>`;
-    t.popup && populateContent(d, k, g);
-  } catch ($) {
-    console.error("Error in Champion Select phase:", $);
+
+    const opGGLink = `https://www.op.gg/multisearch/${webRegion}?summoners=${championSelectParticipants.map(p => encodeURIComponent(`${p.game_name}#${p.game_tag}`)).join("%2C")}`;
+    const deeplolLink = `https://www.deeplol.gg/multi/${webRegion}/${championSelectParticipants.map(p => encodeURIComponent(`${p.game_name}#${p.game_tag}`)).join(",")}`;
+    const linksHTML = `
+      <p style="font-size: 12px">
+        <a href="${opGGLink}" target="_blank" style="color: gold;">View on OP.GG</a><br>
+        <a href="${deeplolLink}" target="_blank" style="color: gold;">View on deeplol.gg</a>
+      </p>
+    `;
+
+    if (config.popup) populateContent(playerData2, linksHTML, document);
+  } catch (error) {
+    console.error("Error in Champion Select phase:", error);
   }
 }
-function formatPlayerData(t, e, a) {
-  let n = calculateWinRate(a.winList),
-    i = mostCommonRole(a.laneList),
-    r = calculateKDA(a.killList, a.assistsList, a.deathsList);
-  return `${t.game_name} - ${e} - ${n} - ${i} - ${r}`;
+
+function formatPlayerData(player, stats, matchData) {
+  const winRate = calculateWinRate(matchData.winList);
+  const role = mostCommonRole(matchData.laneList);
+  const kda = calculateKDA(matchData.killList, matchData.assistsList, matchData.deathsList);
+  return `${player.game_name} - ${stats} - ${winRate} - ${role} - ${kda}`;
 }
-function formatPlayerData2(t, e, a) {
-  let n = calculateWinRate(a.winList),
-    i = mostCommonRole(a.laneList),
-    r = calculateKDA(a.killList, a.assistsList, a.deathsList);
-  return `${t.game_name} #${t.game_tag} - ${e} - ${n} - ${i} - ${r}`;
+
+function formatPlayerData2(player, stats, matchData) {
+  const winRate = calculateWinRate(matchData.winList);
+  const role = mostCommonRole(matchData.laneList);
+  const kda = calculateKDA(matchData.killList, matchData.assistsList, matchData.deathsList);
+  return `${player.game_name} #${player.game_tag} - ${stats} - ${winRate} - ${role} - ${kda}`;
 }
-async function updateLobbyState(t) {
+
+async function updateLobbyState(event) {
   try {
-    let e = JSON.parse(t.data);
-    "ChampSelect" === e[2].data
-      ? await handleChampionSelect()
-      : removeSidebar();
-  } catch (a) {
-    console.error("Error updating lobby state:", a);
+    const data = JSON.parse(event.data);
+    if (data[2].data === "ChampSelect") {
+      await handleChampionSelect();
+    } else {
+      removeSidebar();
+    }
+  } catch (error) {
+    console.error("Error updating lobby state:", error);
   }
 }
-function calculateWinRate(t) {
-  if (!t || 0 === t.length) return "N/A";
-  let e = t.filter((t) => "true" === t).length,
-    a = t.length;
-  return `${Math.round((e / a) * 100)}%`;
+
+function calculateWinRate(winList) {
+  if (!winList || winList.length === 0) return "N/A";
+  const wins = winList.filter(win => win === "true").length;
+  const total = winList.length;
+  return `${Math.round((wins / total) * 100)}%`;
 }
-function mostCommonRole(t) {
-  if (!t) return "N/A";
-  let e = t.reduce((t, e) => ((t[e] = (t[e] || 0) + 1), t), {}),
-    a = 0,
-    n = [];
-  for (let i in e) e[i] > a ? ((n = [i]), (a = e[i])) : e[i] === a && n.push(i);
-  return "NA" == n || "NONE" == n || "" == n ? "N/A" : n.join("/");
+
+function mostCommonRole(roles) {
+  if (!roles) return "N/A";
+  const roleCounts = roles.reduce((counts, role) => {
+    counts[role] = (counts[role] || 0) + 1;
+    return counts;
+  }, {});
+  const maxCount = Math.max(...Object.values(roleCounts));
+  const mostCommonRoles = Object.keys(roleCounts).filter(role => roleCounts[role] === maxCount);
+  return mostCommonRoles.includes("NA") || mostCommonRoles.includes("NONE") ? "N/A" : mostCommonRoles.join("/");
 }
-function calculateKDA(t, e, a) {
-  let n = sumArrayElements(
-      t
-        .map((t) => ("string" == typeof t ? t.split(",").map(Number) : [t]))
-        .flat()
-    ),
-    i = sumArrayElements(
-      e
-        .map((t) => ("string" == typeof t ? t.split(",").map(Number) : [t]))
-        .flat()
-    ),
-    r = sumArrayElements(
-      a
-        .map((t) => ("string" == typeof t ? t.split(",").map(Number) : [t]))
-        .flat()
-    );
-  return `${0 === r ? "PERFECT" : ((n + i) / r).toFixed(2)} KDA`;
+
+function calculateKDA(killsList, assistsList, deathsList) {
+  const kills = sumArrayElements(killsList.map(k => (typeof k === 'string' ? k.split(",").map(Number) : [k])).flat());
+  const assists = sumArrayElements(assistsList.map(a => (typeof a === 'string' ? a.split(",").map(Number) : [a])).flat());
+  const deaths = sumArrayElements(deathsList.map(d => (typeof d === 'string' ? d.split(",").map(Number) : [d])).flat());
+  return deaths === 0 ? "PERFECT" : ((kills + assists) / deaths).toFixed(2) + " KDA";
 }
-window.toggleSidebar = function () {
-  let t = document.getElementById("infoSidebar");
-  t.style.display = "none" === t.style.display ? "block" : "none";
-};
+
+function toggleSidebar() {
+  const sidebar = document.getElementById("infoSidebar");
+  sidebar.style.display = sidebar.style.display === "none" ? "block" : "none";
+}
+
 const API_HEADERS = {
   accept: "application/json",
   "content-type": "application/json",
 };
-async function create(t, e, a) {
-  let n = {
-    method: t,
-    headers: API_HEADERS,
-    ...(a ? { body: JSON.stringify(a) } : void 0),
-  };
+
+async function create(method, url, body) {
   try {
-    let i = await fetch(e, n);
-    if (!i.ok) throw Error(`HTTP error! status: ${i.status}`);
-    return await i.json();
-  } catch (r) {
-    return console.error(`Error in create function for ${t} ${e}: ${r}`), null;
+    const response = await fetch(url, {
+      method,
+      headers: API_HEADERS,
+      ...(body ? { body: JSON.stringify(body) } : {})
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error(`Error in create function for ${method} ${url}:`, error);
+    return null;
   }
 }
+
+async function getConfig() {
+  try {
+    const scriptPathMatch = getScriptPath()?.match(/\/([^/]+)\/index\.js$/);
+    const configUrl = `https://plugins/${decodeURI(scriptPathMatch ? scriptPathMatch[1] : '')}/config.json`;
+    const response = await fetch(configUrl);
+    return await response.json();
+  } catch {
+    return { textchat: true, popup: true };
+  }
+}
+
+function getScriptPath() {
+  const scripts = document.getElementsByTagName('script');
+  return scripts.length > 0 ? scripts[scripts.length - 1].src : '';
+}
+
 async function initializeApp() {
   try {
     await observeQueue(updateLobbyState);
-  } catch (t) {
-    console.error("Error initializing application:", t);
+  } catch (error) {
+    console.error("Error initializing application:", error);
   }
 }
+
 window.addEventListener("load", initializeApp);
