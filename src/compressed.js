@@ -206,7 +206,7 @@ async function handleChampionSelect() {
     } catch {
       t = { textchat: !0, popup: !0 };
     }
-    t.popup && createPopup(), await delay(0e3);
+    t.popup && createPopup(), await delay(0e10);
     let n = await create("GET", "/riotclient/region-locale"),
       i = n.webRegion,
       r = await getChampionSelectChatInfo();
